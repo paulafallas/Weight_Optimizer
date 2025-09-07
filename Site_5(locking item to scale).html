@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Line Tolerance Optimizer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid #3498db;
+            background: #fafafa;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #2980b9, #1f5582);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .success-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+        
+        .optimize-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            font-size: 16px;
+            padding: 15px 30px;
+        }
+        
+        .optimize-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #c0392b, #a93226);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        input[type="number"], input[type="text"] {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        input[type="text"] {
+            width: 120px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .scale-config {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .tolerance-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .scale-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .scale-card h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .result {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .optimization-option {
+            margin-bottom: 15px;
+        }
+
+        .optimization-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .optimization-description {
+            font-size: 13px;
+            color: #666;
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+
+        .min-tolerance-section {
+            background: #f0f8ff;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .min-tolerance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .min-tolerance-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .min-tolerance-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .min-tolerance-input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .file-upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #3498db;
+        }
+
+        .file-upload-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .file-upload-section input[type="file"] {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            width: auto;
+            min-width: 200px;
+        }
+
+        .lock-button {
+            background: #95a5a6;
+            padding: 5px 8px;
+            margin-left: 5px;
+        }
+
+        .lock-button.locked {
+            background: #e67e22;
+        }
+
+        .lock-button:hover:not(:disabled) {
+            background: #7f8c8d;
+        }
+
+        .lock-button.locked:hover:not(:disabled) {
+            background: #d35400;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div id="loadingMessage">Processing...</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>FINAL PACK LINE OPTIMIZER</h1>
+            <p>Maximize Tolerance Across Multiple Scales</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="section">
+                <h2>SCALE CONFIGURATION</h2>
+                <div class="scale-config">
+                    <label for="numScales">Number of Scales:</label>
+                    <select id="numScales" onchange="updateScaleCount()">
+                        <option value="2" selected>2 Scales</option>
+                        <option value="3">3 Scales</option>
+                        <option value="4">4 Scales</option>
+                        <option value="5">5 Scales</option>
+                    </select>
+                    <span style="margin-left: 15px;">
+                        Current: <strong id="currentScaleCount">2</strong> Scales
+                    </span>
+                </div>
+
+                <div class="min-tolerance-section">
+                    <h3 style="margin-top: 0; color: #2c3e50;">MINIMUM TOLERANCE REQUIREMENTS</h3>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeaa7;">
+                        <strong style="color: #856404;">HOW IT WORKS:</strong>
+                        <ul style="margin: 8px 0; padding-left: 20px; color: #856404;">
+                            <li>Set minimum tolerance values that each scale must achieve</li>
+                            <li>During optimization, assignments that don't meet minimums are rejected</li>
+                            <li><strong>Default is 0 (no minimum requirements)</strong></li>
+                            <li>Cards show green borders ✅ when minimums are met, red borders ❌ when not</li>
+                        </ul>
+                    </div>
+                    <div id="minToleranceContainer" class="min-tolerance-grid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #e8f4f8; border-radius: 6px;">
+                        <strong>Current Settings:</strong> <span id="minToleranceStatus">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>BAG MANAGEMENT</h2>
+                
+                <div class="controls">
+                    <button class="success-btn" onclick="addBag()">➕ Add Bag</button>
+                    <button onclick="removeBag()">➖ Remove Bag</button>
+                    <button onclick="loadSampleData()"> Load Sample Data</button>
+                    <button onclick="clearAll()">🗑️ Clear All</button>
+                    <button onclick="toggleAllLocks()" id="toggleAllLocksBtn">🔓 Lock All</button>
+                </div>
+                
+                <div class="file-upload-section">
+                    <h3>📁 UPLOAD DATA FROM FILE</h3>
+                    <div style="margin-bottom: 15px;">
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.pdf" style="margin-bottom: 10px; padding: 8px; border: 2px solid #ddd; border-radius: 4px; background: white;">
+                        <button onclick="uploadFile()" style="background: linear-gradient(135deg, #27ae60, #2ecc71); margin-left: 10px;">📤 Upload & Process</button>
+                    </div>
+                    <div style="font-size: 13px; color: #666; line-height: 1.4;">
+                        <strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls), PDF<br>
+                        <strong>Required columns:</strong> Any column containing "name" + any column containing "weight"<br>
+                        <strong>Examples:</strong> "Product Name" & "Weight(g)", "Item" & "Mass", "Description" & "Size"<br>
+                        <strong>Note:</strong> Uploaded data will replace existing bags
+                    </div>
+                    <div id="uploadStatus" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
+                </div>
+                
+                <div style="margin: 10px 0; padding: 10px; background: #e8f4f8; border-radius: 4px;">
+                    <strong>PRODUCTION RUN:</strong> 
+                    <span id="debugInfo">Bags: 0, Scales: 2, Locked: 0</span>
+                </div>
+                
+                <table id="bagTable">
+                    <thead>
+                        <tr id="tableHeader">
+                            <th>Bag Name</th>
+                            <th>Weight (Grams)</th>
+                            <!-- Scale headers will be inserted here -->
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bagTableBody">
+                        <!-- Bag rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>OPTIMIZATION</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Optimization Strategy:</h3>
+                    
+                    <div class="optimization-option">
+                        <label class="optimization-label">
+                            <input type="radio" name="optimizationMode" value="balanced" checked style="margin-top: 4px;">
+                            <div>
+                                <strong>⚖️ Balanced (Sum of all tolerances)</strong>
+                                <div class="optimization-description">
+                                    Maximizes the total sum of all scale tolerances. Best when all scales are equally important.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="optimization-option">
+                        <label class="optimization-label">
+                            <input type="radio" name="optimizationMode" value="product" style="margin-top: 4px;">
+                            <div>
+                                <strong>✖️ Product (Product of all tolerances)</strong>
+                                <div class="optimization-description">
+                                    Maximizes the product of all tolerances. Ensures no scale performs very poorly, as any zero tolerance makes the product zero.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="optimization-option">
+                        <label class="optimization-label">
+                            <input type="radio" name="optimizationMode" value="min" style="margin-top: 4px;">
+                            <div>
+                                <strong>📊 Min-Max (Maximum minimum tolerance)</strong>
+                                <div class="optimization-description">
+                                    Maximizes the worst-performing scale's tolerance. Best for ensuring all scales meet minimum performance standards.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="success-btn" onclick="calculateTolerances()">CALCULATE TOLERANCES</button>
+                    <button class="optimize-btn" onclick="optimizeAssignments()" id="optimizeBtn">OPTIMIZE ALL SCALES</button>
+                    <button onclick="resetAssignments()">🔄 RESET ASSIGNMENT</button>
+                </div>
+                
+                <div class="progress-bar" id="optimizationProgress">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div id="optimizationResult"></div>
+            </div>
+
+            <div class="section">
+                <h2>TOLERANCE RESULTS</h2>
+                <div class="tolerance-cards" id="toleranceCards">
+                    <!-- Tolerance cards will be generated here -->
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>EXPORT</h2>
+                <div class="controls">
+                    <button class="success-btn" onclick="exportToCSV()">📊 Export CSV</button>
+                    <button onclick="exportReport()">📋 Export Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import libraries for file processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <script>
+        // Application state management
+        class ToleranceOptimizer {
+            constructor() {
+                this.bags = [];
+                this.numScales = 2;
+                this.optimizationMode = 'balanced';
+                this.minTolerances = [0.0, 0.0, 0.0, 0.0, 0.0];
+                this.lockedBags = new Set();
+                this.scaleColors = ['#3498db', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6'];
+                this.scaleEmojis = ['🔵', '🔴', '🟢', '🟡', '🟣'];
+                this.isOptimizing = false;
+                
+                // Bind methods to maintain context
+                this.debouncedCalculateTolerances = this.debounce(this.calculateTolerances.bind(this), 300);
+            }
+
+            // Error handling wrapper
+            safeExecute(fn, context = 'Operation') {
+                try {
+                    return fn();
+                } catch (error) {
+                    console.error(`Error in ${context}:`, error);
+                    this.showMessage(`Error: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+
+            // Show loading overlay
+            showLoading(message = 'Processing...') {
+                const overlay = document.getElementById('loadingOverlay');
+                const messageEl = document.getElementById('loadingMessage');
+                messageEl.textContent = message;
+                overlay.style.display = 'flex';
+            }
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+
+            // Debounce utility
+            debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Input validation
+            validateWeight(weight) {
+                const num = parseFloat(weight);
+                if (isNaN(num) || num < 0 || num > 100000) {
+                    throw new Error('Weight must be a valid number between 0 and 100,000 grams');
+                }
+                return num;
+            }
+
+            validateBagName(name) {
+                if (!name || typeof name !== 'string' || name.trim().length === 0) {
+                    throw new Error('Bag name cannot be empty');
+                }
+                if (name.length > 50) {
+                    throw new Error('Bag name cannot exceed 50 characters');
+                }
+                return name.trim();
+            }
+
+            // Initialize the application
+            initializeApp() {
+                console.log("Initializing app...");
+                this.updateScaleCount();
+                this.loadSampleData();
+                this.updateUI();
+                console.log("✅ App initialized successfully");
+            }
+
+            // Scale configuration
+            updateScaleCount() {
+                const select = document.getElementById('numScales');
+                this.numScales = parseInt(select.value);
+                document.getElementById('currentScaleCount').textContent = this.numScales;
+                
+                console.log("📈 Updated scale count to:", this.numScales);
+                
+                // Update bag assignments to match new scale count
+                this.bags.forEach(bag => {
+                    // Clear old assignments
+                    for (let i = 1; i <= 5; i++) {
+                        delete bag['scale' + i];
+                    }
+                    // Assign to scale 1 by default
+                    for (let i = 1; i <= this.numScales; i++) {
+                        bag['scale' + i] = i === 1;
+                    }
+                });
+                
+                this.updateTableHeaders();
+                this.createMinToleranceControls();
+                this.updateUI();
+            }
+
+            createMinToleranceControls() {
+                console.log("🎛️ Creating minimum tolerance controls for", this.numScales, "scales");
+                const container = document.getElementById('minToleranceContainer');
+                
+                if (!container) {
+                    console.error("❌ Container 'minToleranceContainer' not found!");
+                    return;
+                }
+                
+                // Clear existing controls
+                container.innerHTML = '';
+                
+                // Create controls for each scale
+                for (let i = 0; i < this.numScales; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'min-tolerance-item';
+                    
+                    const scaleColor = this.scaleColors[i] || '#666';
+                    const scaleEmoji = this.scaleEmojis[i] || '⚪';
+                    this.minTolerances[i] = 0.0; // Explicitly set to 0.0
+                    
+                    item.innerHTML = 
+                        `<label style="font-weight: bold; color: ${scaleColor}; font-size: 16px; display: block;">
+                        ${scaleEmoji} Scale ${i + 1} : Minimum Tolerance
+                        </label>
+                        <input type="number" class="min-tolerance-input" 
+                        value="0" min="0" step="0.1" 
+                        onchange="optimizer.setMinTolerance(${i}, this.value)" 
+                        oninput="optimizer.setMinTolerance(${i}, this.value)">
+                        <small style="color: #666; margin-top: 5px; display: block;">
+                        Current tolerance: <span id="current${i}" style="font-weight: bold;">0.00</span>
+                        </small>`;
+                    
+                    container.appendChild(item);
+                }
+                
+                this.updateMinToleranceStatus();
+                console.log("✅ Created", this.numScales, "minimum tolerance controls, all set to 0");
+            }
+
+            setMinTolerance(scaleIndex, value) {
+                return this.safeExecute(() => {
+                    const numValue = parseFloat(value) || 0.0;
+                    if (numValue < 0) throw new Error('Minimum tolerance cannot be negative');
+                    
+                    this.minTolerances[scaleIndex] = numValue;
+                    console.log("🎯 Set minimum tolerance for Scale", scaleIndex + 1, "to", numValue.toFixed(2));
+                    
+                    this.updateMinToleranceStatus();
+                    this.renderToleranceCards();
+                }, 'Setting minimum tolerance');
+            }
+
+            updateMinToleranceStatus() {
+                const statusElement = document.getElementById('minToleranceStatus');
+                if (statusElement) {
+                    const statusText = [];
+                    for (let i = 0; i < this.numScales; i++) {
+                        statusText.push(`Scale ${i + 1}: ${(this.minTolerances[i] || 0.0).toFixed(2)}`);
+                    }
+                    statusElement.textContent = statusText.join(' | ');
+                }
+            }
+
+            updateTableHeaders() {
+                const headerRow = document.getElementById('tableHeader');
+                
+                // Clear existing scale headers
+                const scaleHeaders = headerRow.querySelectorAll('.scale-header');
+                scaleHeaders.forEach(header => header.remove());
+                
+                // Add new scale headers before the Actions column
+                const actionsHeader = headerRow.lastElementChild;
+                for (let i = 1; i <= this.numScales; i++) {
+                    const th = document.createElement('th');
+                    th.className = 'scale-header';
+                    th.innerHTML = `${this.scaleEmojis[i-1] || '⚪'} Scale ${i}`;
+                    headerRow.insertBefore(th, actionsHeader);
+                }
+            }
+
+            // Bag management functions
+            addBag() {
+                return this.safeExecute(() => {
+                    const newBag = { 
+                        name: `Bag ${this.bags.length + 1}`,
+                        weight: 0 
+                    };
+                    
+                    // Initialize scale assignments
+                    for (let i = 1; i <= this.numScales; i++) {
+                        newBag['scale' + i] = i === 1; // Assign to first scale by default
+                    }
+                    
+                    this.bags.push(newBag);
+                    console.log("✅ Bag added successfully. New count:", this.bags.length);
+                    
+                    this.updateUI();
+                }, 'Adding bag');
+            }
+
+            removeBag() {
+                return this.safeExecute(() => {
+                    if (this.bags.length === 0) {
+                        throw new Error('No bags to remove');
+                    }
+                    
+                    const removedIndex = this.bags.length - 1;
+                    this.lockedBags.delete(removedIndex);
+                    
+                    // Update locked bag indices
+                    const newLockedBags = new Set();
+                    this.lockedBags.forEach(index => {
+                        if (index < removedIndex) {
+                            newLockedBags.add(index);
+                        }
+                    });
+                    this.lockedBags = newLockedBags;
+                    
+                    this.bags.pop();
+                    console.log("✅ Bag removed successfully. New count:", this.bags.length);
+                    this.updateUI();
+                }, 'Removing bag');
+            }
+
+            deleteBag(index) {
+                return this.safeExecute(() => {
+                    if (this.bags.length === 0) {
+                        throw new Error('No bags to delete');
+                    }
+                    
+                    this.lockedBags.delete(index);
+                    
+                    // Update locked bag indices for items after deleted index
+                    const newLockedBags = new Set();
+                    this.lockedBags.forEach(lockedIndex => {
+                        if (lockedIndex < index) {
+                            newLockedBags.add(lockedIndex);
+                        } else if (lockedIndex > index) {
+                            newLockedBags.add(lockedIndex - 1);
+                        }
+                    });
+                    this.lockedBags = newLockedBags;
+                    
+                    this.bags.splice(index, 1);
+                    console.log("Bag deleted. Total bags:", this.bags.length);
+                    this.updateUI();
+                }, 'Deleting bag');
+            }
+
+            clearAll() {
+                if (confirm("Clear all bags?")) {
+                    this.bags = [];
+                    this.lockedBags.clear();
+                    this.updateUI();
+                }
+            }
+
+            loadSampleData() {
+                console.log("Loading sample data...");
+                this.bags = [];
+                this.lockedBags.clear();
+                const sampleWeights = [1023, 1051, 1018, 1044, 1031, 1007, 1062, 1029];
+                
+                sampleWeights.forEach((weight, index) => {
+                    const bag = { 
+                        name: `Sample ${index + 1}`,
+                        weight: weight 
+                    };
+                    for (let i = 1; i <= this.numScales; i++) {
+                        bag['scale' + i] = false;
+                    }
+                    // Round-robin assignment
+                    bag['scale' + ((index % this.numScales) + 1)] = true;
+                    this.bags.push(bag);
+                });
+                
+                console.log("Sample data loaded. Total bags:", this.bags.length);
+                this.updateUI();
+            }
+
+            // Lock functionality
+            toggleLock(index) {
+                return this.safeExecute(() => {
+                    if (this.lockedBags.has(index)) {
+                        this.lockedBags.delete(index);
+                        console.log(`🔓 Unlocked bag ${index}`);
+                    } else {
+                        this.lockedBags.add(index);
+                        console.log(`🔒 Locked bag ${index}`);
+                    }
+                    this.updateUI();
+                }, 'Toggling lock');
+            }
+
+            toggleAllLocks() {
+                return this.safeExecute(() => {
+                    if (this.lockedBags.size === 0) {
+                        // Lock all bags
+                        for (let i = 0; i < this.bags.length; i++) {
+                            this.lockedBags.add(i);
+                        }
+                        console.log('🔒 Locked all bags');
+                    } else {
+                        // Unlock all bags
+                        this.lockedBags.clear();
+                        console.log('🔓 Unlocked all bags');
+                    }
+                    this.updateUI();
+                }, 'Toggling all locks');
+            }
+
+            // File upload and processing with Web Worker simulation
+            async uploadFile() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    this.showUploadStatus('Please select a file first', 'error');
+                    return;
+                }
+                
+                this.showLoading('Processing file...');
+                this.showUploadStatus('Processing file...', 'info');
+                
+                try {
+                    // Use setTimeout to simulate Web Worker and prevent UI blocking
+                    const data = await new Promise((resolve, reject) => {
+                        setTimeout(async () => {
+                            try {
+                                let result = [];
+                                const fileName = file.name.toLowerCase();
+                                
+                                if (fileName.endsWith('.csv')) {
+                                    result = await this.processCSV(file);
+                                } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                                    result = await this.processExcel(file);
+                                } else if (fileName.endsWith('.pdf')) {
+                                    result = await this.processPDF(file);
+                                } else {
+                                    throw new Error('Unsupported file format. Please use CSV, Excel, or PDF files.');
+                                }
+                                resolve(result);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        }, 100);
+                    });
+                    
+                    if (data.length === 0) {
+                        throw new Error('No valid data found in file');
+                    }
+                    
+                    // Replace existing bags with uploaded data
+                    this.bags = data;
+                    this.lockedBags.clear();
+                    this.updateUI();
+                    
+                    this.showUploadStatus(`Successfully loaded ${data.length} bags from ${file.name}`, 'success');
+                    fileInput.value = '';
+                    
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    this.showUploadStatus(`Error: ${error.message}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async processCSV(file) {
+                return new Promise((resolve, reject) => {
+                    Papa.parse(file, {
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            try {
+                                const data = this.parseDataFromRows(results.data);
+                                resolve(data);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        },
+                        error: (error) => {
+                            reject(new Error(`CSV parsing failed: ${error.message}`));
+                        }
+                    });
+                });
+            }
+
+            async processExcel(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                            
+                            if (rows.length < 2) {
+                                throw new Error('Excel file must have at least a header row and one data row');
+                            }
+                            
+                            const headers = rows[0];
+                            const dataRows = rows.slice(1).map(row => {
+                                const obj = {};
+                                headers.forEach((header, index) => {
+                                    obj[header] = row[index];
+                                });
+                                return obj;
+                            });
+                            
+                            const data = this.parseDataFromRows(dataRows);
+                            resolve(data);
+                            
+                        } catch (error) {
+                            reject(new Error(`Excel processing failed: ${error.message}`));
+                        }
+                    };
+                    reader.onerror = () => {
+                        reject(new Error('Failed to read Excel file'));
+                    };
+                    reader.readAsBinaryString(file);
+                });
+            }
+
+            async processPDF(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const typedarray = new Uint8Array(e.target.result);
+                            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                            
+                            let fullText = '';
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const textContent = await page.getTextContent();
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                fullText += pageText + '\n';
+                            }
+                            
+                            const data = this.extractDataFromText(fullText);
+                            resolve(data);
+                            
+                        } catch (error) {
+                            reject(new Error(`PDF processing failed: ${error.message}`));
+                        }
+                    };
+                    reader.onerror = () => {
+                        reject(new Error('Failed to read PDF file'));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            parseDataFromRows(rows) {
+                const data = [];
+                
+                for (const row of rows) {
+                    if (!row || typeof row !== 'object') continue;
+                    
+                    let bagName = null;
+                    let weight = null;
+                    
+                    const keys = Object.keys(row);
+                    
+                    // Find name and weight columns (case insensitive)
+                    const nameColumn = keys.find(key => 
+                        key && typeof key === 'string' && 
+                        /^(bag\s*name|name|product|item|bag)$/i.test(key.trim())
+                    );
+                    
+                    const weightColumn = keys.find(key => 
+                        key && typeof key === 'string' && 
+                        /^(weight|mass|wt|grams?|g)$/i.test(key.trim())
+                    );
+                    
+                    if (nameColumn && row[nameColumn]) {
+                        bagName = String(row[nameColumn]).trim();
+                    }
+                    
+                    if (weightColumn && row[weightColumn] !== null && row[weightColumn] !== undefined) {
+                        const weightValue = parseFloat(row[weightColumn]);
+                        if (!isNaN(weightValue) && weightValue >= 0) {
+                            weight = weightValue;
+                        }
+                    }
+                    
+                    if (bagName && weight !== null) {
+                        const bag = {
+                            name: bagName,
+                            weight: weight
+                        };
+                        
+                        // Initialize scale assignments
+                        for (let j = 1; j <= this.numScales; j++) {
+                            bag['scale' + j] = j === 1;
+                        }
+                        
+                        data.push(bag);
+                    }
+                }
+                
+                if (data.length === 0) {
+                    throw new Error('No valid data found. Please ensure your file has columns named "Bag Name" (or "Name") and "Weight"');
+                }
+                
+                return data;
+            }
+
+            extractDataFromText(text) {
+                const data = [];
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                
+                // Simplified PDF processing with better error handling
+                for (const line of lines) {
+                    // Skip header lines
+                    if (line.toLowerCase().includes('name') && line.toLowerCase().includes('weight')) continue;
+                    
+                    // Try simple pattern: Name followed by number
+                    const match = line.match(/^([a-zA-Z][a-zA-Z0-9\s\-_]+?)\s*[:|\s]\s*(\d+\.?\d*)/);
+                    if (match) {
+                        const name = match[1].trim();
+                        const weight = parseFloat(match[2]);
+                        
+                        if (name.length > 1 && weight > 0 && weight < 50000) {
+                            this.addUniqueBag(data, name, weight);
+                        }
+                    }
+                }
+                
+                if (data.length === 0) {
+                    throw new Error('Could not extract data from PDF. Please ensure your PDF contains text in format "Item Name: Weight" or convert to CSV/Excel for better results.');
+                }
+                
+                return data;
+            }
+
+            addUniqueBag(data, name, weight) {
+                const exists = data.some(bag => 
+                    bag.name.toLowerCase() === name.toLowerCase() && 
+                    Math.abs(bag.weight - weight) < 0.01
+                );
+                
+                if (!exists) {
+                    const bag = { name, weight };
+                    
+                    for (let i = 1; i <= this.numScales; i++) {
+                        bag['scale' + i] = i === 1;
+                    }
+                    
+                    data.push(bag);
+                }
+            }
+
+            showUploadStatus(message, type) {
+                const statusDiv = document.getElementById('uploadStatus');
+                statusDiv.style.display = 'block';
+                statusDiv.className = '';
+                
+                const colors = {
+                    error: { background: '#e74c3c', color: 'white' },
+                    success: { background: '#27ae60', color: 'white' },
+                    info: { background: '#3498db', color: 'white' }
+                };
+                
+                const color = colors[type] || colors.info;
+                Object.assign(statusDiv.style, color);
+                statusDiv.textContent = message;
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 5000);
+                }
+            }
+
+            // UI update functions
+            updateUI() {
+                this.renderTable();
+                this.debouncedCalculateTolerances();
+                this.renderToleranceCards();
+                this.updateDebugInfo();
+                this.updateLockButton();
+            }
+
+            updateDebugInfo() {
+                const debugElement = document.getElementById('debugInfo');
+                if (debugElement) {
+                    debugElement.textContent = `Bags: ${this.bags.length}, Scales: ${this.numScales}, Locked: ${this.lockedBags.size}`;
+                }
+            }
+
+            updateLockButton() {
+                const button = document.getElementById('toggleAllLocksBtn');
+                if (button) {
+                    if (this.lockedBags.size === 0) {
+                        button.textContent = '🔒 Lock All';
+                    } else if (this.lockedBags.size === this.bags.length) {
+                        button.textContent = '🔓 Unlock All';
+                    } else {
+                        button.textContent = `🔒 Lock All (${this.lockedBags.size} locked)`;
+                    }
+                }
+            }
+
+            renderTable() {
+                const tbody = document.getElementById('bagTableBody');
+                tbody.innerHTML = '';
+                
+                this.bags.forEach((bag, index) => {
+                    const row = document.createElement('tr');
+                    const isLocked = this.lockedBags.has(index);
+                    
+                    if (isLocked) {
+                        row.style.backgroundColor = '#fff3cd';
+                    }
+                    
+                    let html = `<td>
+                        <input type="text" value="${bag.name || (`Bag ${index + 1}`)}" 
+                        style="width: 120px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center;" 
+                        onchange="optimizer.updateBagName(${index}, this.value)">
+                        </td>
+                        <td>
+                        <input type="number" value="${bag.weight}" min="0" step="1" 
+                        onchange="optimizer.updateWeight(${index}, this.value)">
+                        </td>`;
+                    
+                    // Add scale checkboxes
+                    for (let i = 1; i <= this.numScales; i++) {
+                        const disabled = isLocked ? 'disabled' : '';
+                        html += `<td>
+                            <input type="checkbox" ${bag['scale' + i] ? 'checked' : ''} ${disabled}
+                            onchange="optimizer.updateAssignment(${index}, ${i}, this.checked)">
+                            </td>`;
+                    }
+                    
+                    html += `<td>
+                        <button onclick="optimizer.deleteBag(${index})" 
+                        style="background: #e74c3c; padding: 5px 10px; margin-right: 5px;">🗑️</button>
+                        <button onclick="optimizer.toggleLock(${index})" 
+                        class="lock-button ${isLocked ? 'locked' : ''}"
+                        title="${isLocked ? 'Unlock bag' : 'Lock bag assignment'}">
+                        ${isLocked ? '🔒' : '🔓'}
+                        </button>
+                        </td>`;
+                    
+                    row.innerHTML = html;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Input handlers with validation
+            updateBagName(index, newName) {
+                return this.safeExecute(() => {
+                    const validName = this.validateBagName(newName);
+                    this.bags[index].name = validName;
+                    console.log(`Bag ${index} renamed to: ${validName}`);
+                    this.updateDebugInfo();
+                }, 'Updating bag name');
+            }
+
+            updateWeight(index, value) {
+                return this.safeExecute(() => {
+                    const weight = this.validateWeight(value);
+                    this.bags[index].weight = weight;
+                    this.debouncedCalculateTolerances();
+                    this.renderToleranceCards();
+                }, 'Updating weight');
+            }
+
+            updateAssignment(index, scaleNum, checked) {
+                return this.safeExecute(() => {
+                    if (this.lockedBags.has(index)) {
+                        this.showMessage('Cannot change assignment for locked bag', 'warning');
+                        return;
+                    }
+
+                    if (checked) {
+                        // Uncheck all other scales for this bag
+                        for (let i = 1; i <= this.numScales; i++) {
+                            this.bags[index]['scale' + i] = i === scaleNum;
+                        }
+                    } else {
+                        this.bags[index]['scale' + scaleNum] = false;
+                        
+                        // Check if assigned to any scale
+                        let assignedToAny = false;
+                        for (let i = 1; i <= this.numScales; i++) {
+                            if (this.bags[index]['scale' + i]) {
+                                assignedToAny = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!assignedToAny) {
+                            this.bags[index].scale1 = true;
+                        }
+                    }
+                    
+                    this.updateUI();
+                }, 'Updating assignment');
+            }
+
+            // Tolerance calculations
+            calculateMinDifference(weights) {
+                if (weights.length < 2) return 0;
+                let minDiff = Infinity;
+                
+                for (let i = 0; i < weights.length; i++) {
+                    for (let j = i + 1; j < weights.length; j++) {
+                        const diff = Math.abs(weights[i] - weights[j]);
+                        if (diff > 0 && diff < minDiff) {
+                            minDiff = diff;
+                        }
+                    }
+                }
+                return minDiff === Infinity ? 0 : minDiff;
+            }
+
+            calculateScaleTolerance(weights) {
+                if (weights.length < 2) {
+                    return {
+                        minWeight: 0,
+                        minDiff: 0,
+                        factorA: 0,
+                        factorB: 0,
+                        tolerance: 0
+                    };
+                }
+                
+                const minWeight = Math.min(...weights);
+                const minDiff = this.calculateMinDifference(weights);
+                const factorA = minWeight / 3;
+                const factorB = minDiff * 2 / 3;
+                const tolerance = Math.min(factorA, factorB);
+                
+                return {
+                    minWeight,
+                    minDiff,
+                    factorA,
+                    factorB,
+                    tolerance
+                };
+            }
+
+            calculateTolerances() {
+                console.log("Calculating tolerances for", this.bags.length, "bags across", this.numScales, "scales");
+            }
+
+            renderToleranceCards() {
+                const container = document.getElementById('toleranceCards');
+                container.innerHTML = '';
+                
+                for (let i = 1; i <= this.numScales; i++) {
+                    const scaleWeights = this.bags.filter(bag => bag['scale' + i]).map(bag => bag.weight);
+                    const results = this.calculateScaleTolerance(scaleWeights);
+                    const minRequired = this.minTolerances[i - 1] || 0.0;
+                    const meetsMinimum = results.tolerance >= minRequired;
+                    
+                    // Update current tolerance display
+                    const currentSpan = document.getElementById('current' + (i - 1));
+                    if (currentSpan) {
+                        const displayValue = results.tolerance === 0 ? '0' : results.tolerance.toFixed(2);
+                        currentSpan.textContent = displayValue;
+                        currentSpan.style.color = meetsMinimum && minRequired > 0 ? '#27ae60' : '#e74c3c';
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = 'scale-card';
+                    
+                    if (minRequired > 0) {
+                        card.style.border = `3px solid ${meetsMinimum ? '#27ae60' : '#e74c3c'}`;
+                    }
+                    
+                    card.innerHTML = `<h3 style="color: ${this.scaleColors[i-1] || '#666'}">
+                        ${this.scaleEmojis[i-1] || '⚪'} Scale ${i}
+                        </h3>
+                        <div class="metric">
+                        <span>Assigned Bags:</span>
+                        <span><strong>${scaleWeights.length}</strong></span>
+                        </div>
+                        <div class="metric">
+                        <span>Smallest Weight:</span>
+                        <span>${results.minWeight.toFixed(2)}g</span>
+                        </div>
+                        <div class="metric">
+                        <span>Smallest Difference:</span>
+                        <span>${results.minDiff.toFixed(2)}g</span>
+                        </div>
+                        <div class="metric">
+                        <span>Factor A (1/3 × Min Weight):</span>
+                        <span>${results.factorA.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                        <span>Factor B (2/3 × Min Diff):</span>
+                        <span>${results.factorB.toFixed(2)}</span>
+                        </div>
+                        ${minRequired > 0 ? 
+                            `<div class="metric" style="background: ${meetsMinimum ? '#27ae60' : '#e74c3c'}; color: white; margin: 5px -20px; padding: 8px 20px; border-radius: 4px;">
+                            <span><strong>Min Required:</strong></span>
+                            <span><strong>${minRequired.toFixed(2)}</strong></span>
+                            </div>` : ''}
+                        <div class="metric" style="background: ${this.scaleColors[i-1] || '#666'}; color: white; margin: 10px -20px -20px -20px; padding: 12px 20px; border-radius: 0 0 8px 8px;">
+                        <span><strong>TOLERANCE:</strong></span>
+                        <span><strong>${results.tolerance.toFixed(2)} 
+                        ${minRequired > 0 ? (meetsMinimum ? '✅' : '❌') : ''}</strong></span>
+                        </div>`;
+                    
+                    container.appendChild(card);
+                }
+            }
+
+            // Optimization with better performance and error handling
+            async optimizeAssignments() {
+                if (this.isOptimizing) {
+                    this.showMessage('Optimization already in progress', 'warning');
+                    return;
+                }
+
+                return this.safeExecute(async () => {
+                    if (this.bags.length === 0) {
+                        throw new Error('Need at least 1 bag for optimization');
+                    }
+
+                    this.isOptimizing = true;
+                    this.disableOptimizeButton(true);
+                    this.showProgress(true);
+                    this.showLoading('Optimizing assignments...');
+                    this.showMessage("Optimizing assignments...", "info");
+
+                    // Use setTimeout to prevent UI blocking
+                    const result = await new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve(this.runOptimization());
+                        }, 100);
+                    });
+
+                    this.showProgress(false);
+                    this.hideLoading();
+                    this.isOptimizing = false;
+                    this.disableOptimizeButton(false);
+
+                    return result;
+                }, 'Optimization');
+            }
+
+            runOptimization() {
+                const mode = document.querySelector('input[name="optimizationMode"]:checked').value;
+                let bestObjective = -Infinity;
+                let bestAssignment = null;
+                let bestTolerances = [];
+                let validAssignments = 0;
+                
+                const lockedCount = this.lockedBags.size;
+                const unlockedCount = this.bags.length - lockedCount;
+                
+                console.log(`Starting optimization: ${this.bags.length} total bags, ${lockedCount} locked, ${unlockedCount} unlocked`);
+                
+                const iterations = Math.min(50000, Math.max(1000, this.bags.length * 1000));
+                
+                for (let iter = 0; iter < iterations; iter++) {
+                    if (iter % 2000 === 0) {
+                        this.updateProgress((iter / iterations) * 100);
+                    }
+                    
+                    const assignment = this.generateRandomAssignment();
+                    const tolerances = [];
+                    let meetsAllMinimums = true;
+                    
+                    for (let i = 0; i < this.numScales; i++) {
+                        const scaleWeights = this.bags
+                            .filter((bag, idx) => assignment[idx] === i)
+                            .map(bag => bag.weight);
+                        
+                        const results = this.calculateScaleTolerance(scaleWeights);
+                        tolerances.push(results.tolerance);
+                        
+                        const minRequired = this.minTolerances[i] || 0.0;
+                        if (results.tolerance < minRequired) {
+                            meetsAllMinimums = false;
+                        }
+                    }
+                    
+                    if (!meetsAllMinimums) continue;
+                    
+                    validAssignments++;
+                    
+                    let objective;
+                    if (mode === 'balanced') {
+                        objective = tolerances.reduce((sum, t) => sum + t, 0);
+                    } else if (mode === 'product') {
+                        objective = tolerances.reduce((prod, t) => prod * t, 1);
+                    } else if (mode === 'min') {
+                        objective = Math.min(...tolerances);
+                    }
+                    
+                    if (objective > bestObjective) {
+                        bestObjective = objective;
+                        bestAssignment = assignment.slice();
+                        bestTolerances = tolerances.slice();
+                    }
+                }
+                
+                // Apply best assignment (only to unlocked bags)
+                if (bestAssignment && validAssignments > 0) {
+                    this.bags.forEach((bag, index) => {
+                        if (!this.lockedBags.has(index)) {
+                            for (let i = 1; i <= this.numScales; i++) {
+                                bag['scale' + i] = false;
+                            }
+                            bag['scale' + (bestAssignment[index] + 1)] = true;
+                        }
+                    });
+                    
+                    this.updateUI();
+                    
+                    const toleranceText = bestTolerances.map((t, i) => {
+                        const minReq = this.minTolerances[i] || 0.0;
+                        return `Scale ${i+1}: ${t.toFixed(2)}${minReq > 0 ? ` (Min: ${minReq.toFixed(2)})` : ''}`;
+                    }).join('<br>');
+                    
+                    const lockMessage = lockedCount > 0 ? `<br>Locked bags: ${lockedCount} (kept in place)` : '';
+                    
+                    this.showMessage(`Optimization Complete!<br>Found ${validAssignments} valid assignments<br>Best Objective: ${bestObjective.toFixed(2)}<br>${toleranceText}${lockMessage}`, "success");
+                } else {
+                    this.showMessage('No valid assignments found that meet all minimum requirements.<br>Try lowering minimum tolerances or adding more bags.', "warning");
+                }
+            }
+
+            generateRandomAssignment() {
+                const assignment = [];
+                
+                for (let i = 0; i < this.bags.length; i++) {
+                    if (this.lockedBags.has(i)) {
+                        // Keep locked bags in their current assignment
+                        for (let j = 1; j <= this.numScales; j++) {
+                            if (this.bags[i]['scale' + j]) {
+                                assignment.push(j - 1);
+                                break;
+                            }
+                        }
+                    } else {
+                        assignment.push(Math.floor(Math.random() * this.numScales));
+                    }
+                }
+                
+                return assignment;
+            }
+
+            resetAssignments() {
+                this.bags.forEach((bag, index) => {
+                    if (!this.lockedBags.has(index)) {
+                        for (let i = 1; i <= this.numScales; i++) {
+                            bag['scale' + i] = false;
+                        }
+                        bag['scale' + ((index % this.numScales) + 1)] = true;
+                    }
+                });
+                this.updateUI();
+                this.showMessage("Reset to round-robin assignment (locked bags unchanged)", "info");
+            }
+
+            disableOptimizeButton(disabled) {
+                const button = document.getElementById('optimizeBtn');
+                if (button) {
+                    button.disabled = disabled;
+                    button.textContent = disabled ? '🔄 Optimizing...' : '🚀 OPTIMIZE ALL SCALES';
+                }
+            }
+
+            // Export functions
+            exportToCSV() {
+                return this.safeExecute(() => {
+                    if (this.bags.length === 0) {
+                        throw new Error('No data to export');
+                    }
+                    
+                    let csv = "Pre-Pack Bag Name,Weight(grams)";
+                    for (let i = 1; i <= this.numScales; i++) {
+                        csv += `,Scale${i}`;
+                    }
+                    csv += "\n";
+                    
+                    this.bags.forEach((bag, index) => {
+                        const bagName = bag.name || (`Bag ${index + 1}`);
+                        csv += `"${bagName}",${bag.weight}`;
+                        for (let i = 1; i <= this.numScales; i++) {
+                            csv += `,${bag['scale' + i] ? 1 : 0}`;
+                        }
+                        csv += "\n";
+                    });
+                    
+                    this.downloadFile(csv, 'bag_assignments.csv', 'text/csv');
+                    this.showMessage("CSV exported successfully", "success");
+                }, 'Exporting CSV');
+            }
+
+            exportReport() {
+                return this.safeExecute(() => {
+                    const report = `PRODUCTION LINE TOLERANCE OPTIMIZATION REPORT
+Generated: ${new Date().toLocaleString()}
+
+Number of Scales: ${this.numScales}
+Total Bags: ${this.bags.length}
+Locked Bags: ${this.lockedBags.size}
+Optimization Mode: ${this.optimizationMode}
+
+MINIMUM TOLERANCE REQUIREMENTS:
+${Array.from({length: this.numScales}, (_, i) => 
+    `Scale ${i + 1}: ${(this.minTolerances[i] || 0.0).toFixed(2)}`
+).join('\n')}
+
+BAG DETAILS:
+${this.bags.map((bag, index) => {
+    const bagName = bag.name || (`Bag ${index + 1}`);
+    let assignedScale = 'Unassigned';
+    for (let i = 1; i <= this.numScales; i++) {
+        if (bag['scale' + i]) {
+            assignedScale = `Scale ${i}`;
+            break;
+        }
+    }
+    const locked = this.lockedBags.has(index) ? ' (LOCKED)' : '';
+    return `${bagName}: ${bag.weight}g (${assignedScale})${locked}`;
+}).join('\n')}
+
+SCALE ANALYSIS:
+${Array.from({length: this.numScales}, (_, i) => {
+    const scaleNum = i + 1;
+    const scaleWeights = this.bags.filter(bag => bag['scale' + scaleNum]).map(bag => bag.weight);
+    const scaleBagNames = this.bags.filter(bag => bag['scale' + scaleNum])
+        .map(bag => bag.name || (`Bag ${this.bags.indexOf(bag) + 1}`));
+    const results = this.calculateScaleTolerance(scaleWeights);
+    const minRequired = this.minTolerances[i] || 0.0;
+    const meetsMinimum = results.tolerance >= minRequired;
+    
+    return `\nScale ${scaleNum}:
+  Assigned Bags: ${scaleWeights.length}
+  Pre-pack Bag Names: ${scaleBagNames.join(', ') || 'None'}
+  Weights: ${scaleWeights.join(', ')}grams
+  Tolerance: ${results.tolerance.toFixed(2)}
+  Minimum Required: ${minRequired.toFixed(2)}
+  Meets Minimum: ${meetsMinimum ? 'YES' : 'NO'}`;
+}).join('')}`;
+                    
+                    this.downloadFile(report, 'tolerance_report.txt', 'text/plain');
+                    this.showMessage("Report exported successfully", "success");
+                }, 'Exporting report');
+            }
+
+            // Utility functions
+            showMessage(message, type = "info") {
+                const resultDiv = document.getElementById('optimizationResult');
+                const className = type === "warning" ? 'warning' : type === "error" ? 'error' : 'result';
+                resultDiv.innerHTML = `<div class="${className}">${message}</div>`;
+                
+                if (type === "info") {
+                    setTimeout(() => {
+                        if (resultDiv.innerHTML.indexOf(message) !== -1) {
+                            resultDiv.innerHTML = '';
+                        }
+                    }, 5000);
+                }
+            }
+
+            showProgress(show) {
+                const progressBar = document.getElementById('optimizationProgress');
+                progressBar.style.display = show ? 'block' : 'none';
+                if (!show) this.updateProgress(0);
+            }
+
+            updateProgress(percent) {
+                const progressFill = document.getElementById('progressFill');
+                progressFill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+            }
+
+            downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Global instance for backward compatibility
+        let optimizer;
+
+        // Global functions for HTML event handlers
+        function updateScaleCount() { optimizer.updateScaleCount(); }
+        function addBag() { optimizer.addBag(); }
+        function removeBag() { optimizer.removeBag(); }
+        function deleteBag(index) { optimizer.deleteBag(index); }
+        function clearAll() { optimizer.clearAll(); }
+        function loadSampleData() { optimizer.loadSampleData(); }
+        function toggleAllLocks() { optimizer.toggleAllLocks(); }
+        function uploadFile() { optimizer.uploadFile(); }
+        function updateBagName(index, value) { optimizer.updateBagName(index, value); }
+        function updateWeight(index, value) { optimizer.updateWeight(index, value); }
+        function updateAssignment(index, scaleNum, checked) { optimizer.updateAssignment(index, scaleNum, checked); }
+        function calculateTolerances() { optimizer.calculateTolerances(); }
+        function optimizeAssignments() { optimizer.optimizeAssignments(); }
+        function resetAssignments() { optimizer.resetAssignments(); }
+        function exportToCSV() { optimizer.exportToCSV(); }
+        function exportReport() { optimizer.exportReport(); }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            console.log("Page loaded, initializing improved optimizer...");
+            optimizer = new ToleranceOptimizer();
+            optimizer.initializeApp();
+        });
+
+        // Error boundary for unhandled errors
+        window.addEventListener('error', (event) => {
+            console.error('Unhandled error:', event.error);
+            if (optimizer) {
+                optimizer.showMessage('An unexpected error occurred. Please refresh the page if issues persist.', 'error');
+                optimizer.hideLoading();
+                optimizer.isOptimizing = false;
+                optimizer.disableOptimizeButton(false);
+            }
+        });
+
+        // Handle promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            if (optimizer) {
+                optimizer.showMessage('An error occurred during processing. Please try again.', 'error');
+                optimizer.hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
