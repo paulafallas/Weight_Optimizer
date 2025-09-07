@@ -1,0 +1,162 @@
+/* General Page Styles */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f7f9fa;
+    color: #222;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4 {
+    color: #2a4d69;
+    margin-top: 1.5em;
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+h3 {
+    font-size: 1.2em;
+    margin-bottom: 0.5em;
+}
+
+h4 {
+    font-size: 1em;
+    margin-bottom: 0.5em;
+}
+
+/* Section Headings */
+#scale-config, #bag-management, #optimization, #results, #export {
+    margin: 2em 0;
+    padding: 1em;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.75em 1em;
+    text-align: left;
+    border-bottom: 1px solid #eaeaea;
+}
+
+th {
+    background: #e3ecf7;
+    color: #2a4d69;
+    font-weight: 600;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Bag Cards (Locking to Scale) */
+.card {
+    border: 2px solid #eaeaea;
+    border-radius: 8px;
+    margin: 1em 0;
+    padding: 1em;
+    background: #f9fcff;
+    transition: border-color 0.3s;
+}
+
+/* Locked State */
+.card.locked {
+    border-color: #2ecc40; /* Green border for locked */
+    box-shadow: 0 0 8px #2ecc40;
+}
+
+/* Unlocked State */
+.card.unlocked {
+    border-color: #ff4136; /* Red border for unlocked */
+    box-shadow: 0 0 8px #ff4136;
+}
+
+/* Button Styles */
+button, .btn {
+    background: #2a4d69;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6em 1.2em;
+    margin: 0.3em;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover, .btn:hover {
+    background: #1e3550;
+}
+
+button:disabled, .btn:disabled {
+    background: #b0b7c3;
+    cursor: not-allowed;
+}
+
+/* Icon Buttons */
+.icon-btn {
+    background: #e3ecf7;
+    color: #2a4d69;
+    border-radius: 50%;
+    padding: 0.5em;
+    font-size: 1.2em;
+    border: none;
+    margin: 0 0.2em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover {
+    background: #c1d3ee;
+}
+
+/* Status Indicators */
+.status-green {
+    color: #2ecc40;
+    font-weight: bold;
+}
+
+.status-red {
+    color: #ff4136;
+    font-weight: bold;
+}
+
+/* Export Buttons */
+.export-btn {
+    background: #f1c40f;
+    color: #222;
+    border-radius: 6px;
+    padding: 0.6em 1.2em;
+    margin: 0.3em;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.export-btn:hover {
+    background: #f39c12;
+}
+
+/* Responsive Design */
+@media (max-width: 700px) {
+    table, th, td {
+        font-size: 0.95em;
