@@ -1042,10 +1042,123 @@
                 console.log("updateUI called - rendering table, tolerance cards, and debug info");
                 console.log("Current items:", this.items.length);
                 console.log("Items data:", this.items);
-                this.renderTable();
-                this.renderToleranceCards();
-                this.updateDebugInfo();
+                
+                try {
+                    console.log("About to call renderTable()");
+                    this.renderTable();
+                    console.log("renderTable() completed");
+                } catch (error) {
+                    console.error("Error in renderTable():", error);
+                }
+                
+                try {
+                    console.log("About to call renderToleranceCardsNew()");
+                    this.renderToleranceCardsNew();
+                    console.log("renderToleranceCardsNew() completed");
+                } catch (error) {
+                    console.error("Error in renderToleranceCardsNew():", error);
+                }
+                
+                try {
+                    console.log("About to call updateDebugInfo()");
+                    this.updateDebugInfo();
+                    console.log("updateDebugInfo() completed");
+                } catch (error) {
+                    console.error("Error in updateDebugInfo():", error);
+                }
+                
                 console.log("updateUI complete");
+            }
+
+            renderToleranceCardsNew() {
+                console.log("*** RENDERING TOLERANCE CARDS ***");
+                
+                const container = document.getElementById('toleranceCards');
+                if (!container) {
+                    console.log("No container found");
+                    return;
+                }
+                
+                console.log("Container found, clearing content");
+                container.innerHTML = '';
+                
+                for (let i = 1; i <= this.numScales; i++) {
+                    console.log(`Processing scale ${i}`);
+                    
+                    const scaleItems = this.items.filter(item => item[`scale${i}`]);
+                    const scaleWeights = scaleItems.map(item => item.weight);
+                    const results = this.calculateScaleTolerance(scaleWeights);
+                    const minRequired = this.minTolerances[i - 1] || 0.0;
+                    const meetsMinimum = results.tolerance >= minRequired;
+                    
+                    console.log(`Scale ${i} has ${scaleItems.length} items:`, scaleItems.map(item => item.name));
+                    
+                    // Update current tolerance display in minimum tolerance section
+                    const currentSpan = document.getElementById(`current${i - 1}`);
+                    if (currentSpan) {
+                        const displayValue = results.tolerance === 0 ? '0' : results.tolerance.toFixed(2);
+                        currentSpan.textContent = displayValue;
+                        currentSpan.style.color = meetsMinimum && minRequired > 0 ? '#27ae60' : '#e74c3c';
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = 'scale-card';
+                    
+                    if (minRequired > 0) {
+                        card.style.border = `3px solid ${meetsMinimum ? '#27ae60' : '#e74c3c'}`;
+                    }
+                    
+                    const statusIndicator = minRequired > 0 ? 
+                        `<span class="status-indicator ${meetsMinimum ? 'status-success' : 'status-error'}"></span>` : '';
+                    
+                    const itemList = scaleItems.length > 0 ? 
+                        scaleItems.map(item => `${item.name} (${item.weight}g)`).join(', ') : 
+                        'No items assigned';
+                    
+                    console.log(`Scale ${i} item list: ${itemList}`);
+                    
+                    card.innerHTML = `
+                        <h3 style="color: ${this.scaleColors[i-1] || '#666'}">Scale ${i}</h3>
+                        <div class="metric">
+                            <span>Assigned Items:</span>
+                            <span><strong>${scaleItems.length}</strong></span>
+                        </div>
+                        <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid ${this.scaleColors[i-1] || '#666'}; min-height: 50px;">
+                            <strong style="display: block; margin-bottom: 5px; color: ${this.scaleColors[i-1] || '#666'};">Items:</strong>
+                            <div style="font-size: 13px; line-height: 1.4; max-height: 80px; overflow-y: auto; word-wrap: break-word;">${itemList}</div>
+                        </div>
+                        <div class="metric">
+                            <span>Smallest Weight:</span>
+                            <span>${results.minWeight.toFixed(2)}g</span>
+                        </div>
+                        <div class="metric">
+                            <span>Smallest Difference:</span>
+                            <span>${results.minDiff.toFixed(2)}g</span>
+                        </div>
+                        <div class="metric">
+                            <span>Factor A (1/3 × Min Weight):</span>
+                            <span>${results.factorA.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Factor B (2/3 × Min Diff):</span>
+                            <span>${results.factorB.toFixed(2)}</span>
+                        </div>
+                        ${minRequired > 0 ? 
+                            `<div class="metric" style="background: ${meetsMinimum ? '#27ae60' : '#e74c3c'}; color: white; margin: 5px -20px; padding: 8px 20px; border-radius: 4px;">
+                                <span><strong>Min Required:</strong></span>
+                                <span><strong>${minRequired.toFixed(2)}</strong></span>
+                            </div>` : ''}
+                        <div class="metric" style="background: ${this.scaleColors[i-1] || '#666'}; color: white; margin: 10px -20px -20px -20px; padding: 12px 20px; border-radius: 0 0 8px 8px;">
+                            <span><strong>TOLERANCE:</strong></span>
+                            <span><strong>${results.tolerance.toFixed(2)} ${statusIndicator}</strong></span>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                    console.log(`Scale ${i} card added`);
+                }
+                
+                console.log("All tolerance cards rendered successfully");
             }
 
             updateDebugInfo() {
@@ -1365,19 +1478,19 @@
                         
                         <div class="optimization-summary">
                             <div class="summary-metric">
-                                <h4>Total Sum</h4>
-                                <div class="value">${result.totalTolerance.toFixed(3)}</div>
+                                <h4>Sum of Tolerance</h4>
+                                <div class="value">${result.totalTolerance.toFixed(2)}</div>
                             </div>
                             <div class="summary-metric">
-                                <h4>Product Value</h4>
+                                <h4>Product of Tolerance</h4>
                                 <div class="value">${result.productTolerance.toFixed(3)}</div>
                             </div>
                             <div class="summary-metric">
-                                <h4>Minimum Scale</h4>
+                                <h4>Minimum Scale Weight</h4>
                                 <div class="value">${result.minTolerance.toFixed(3)}</div>
                             </div>
                             <div class="summary-metric">
-                                <h4>Items Processed</h4>
+                                <h4>Items Packed</h4>
                                 <div class="value">${result.totalItems}</div>
                                 ${result.lockedItemsCount > 0 ? `<small>${result.lockedItemsCount} locked</small>` : ''}
                             </div>
