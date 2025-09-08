@@ -542,8 +542,8 @@
                 <h2>PROJECT SETTINGS</h2>
                 
                 <div class="project-field">
-                    <label for="projectName">Project Name:</label>
-                    <input type="text" id="projectName" value=" " placeholder="Enter project name">
+                    <label for="projectName">Product Name:</label>
+                    <input type="text" id="projectName" value=" " placeholder="Enter product name">
                 </div>
                 
                 <div>
@@ -770,7 +770,7 @@
                     
                     item.innerHTML = `
                         <label for="minTolerance${i}" style="font-weight: bold; color: ${scaleColor}; font-size: 16px; display: block;">
-                            Scale ${i + 1} Minimum Tolerance
+                            Scale ${i + 1} : Minimum Tolerance
                         </label>
                         <input type="number" id="minTolerance${i}" class="min-tolerance-input" 
                                value="0" min="0" step="0.1" 
@@ -1490,7 +1490,7 @@
                                 <div class="value">${result.minTolerance.toFixed(3)}</div>
                             </div>
                             <div class="summary-metric">
-                                <h4>Items Packed</h4>
+                                <h4>Total Items Packed</h4>
                                 <div class="value">${result.totalItems}</div>
                                 ${result.lockedItemsCount > 0 ? `<small>${result.lockedItemsCount} locked</small>` : ''}
                             </div>
