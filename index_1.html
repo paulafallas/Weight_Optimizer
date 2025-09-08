@@ -1020,16 +1020,14 @@
             loadSampleData() {
                 this.items = [];
                 this.lockedItems.clear();
-                const sampleWeights = [1023, 1051, 1018, 1044, 1031, 1007, 1062, 1029];
+                const sampleWeights = [84.8, 42.06, 33.749, 18.453, 8.485, 5.12, 6.571, 32.536];
+		        const sampleNames = ["BI", "6544401", "6537259", "6544400", "6537257","4656764","6537260","654399"];
                 
                 sampleWeights.forEach((weight, index) => {
-                    const item = { 
-                        name: `Sample ${index + 1}`,
+                    const bag = { 
+                        name:sampleNames[index],
                         weight: weight 
                     };
-                    for (let i = 1; i <= this.numScales; i++) {
-                        item[`scale${i}`] = false;
-                    }
                     item[`scale${((index % this.numScales) + 1)}`] = true;
                     this.items.push(item);
                 });
