@@ -1347,23 +1347,18 @@
                 try {
                     const mode = document.querySelector('input[name="optimizationMode"]:checked').value;
                     
-                    // Simple optimization for demo - distribute items evenly and then improve
-                    this.items.forEach((item, index) => {
-                        if (!this.lockedItems.has(index)) {
-                            for (let i = 1; i <= this.numScales; i++) {
-                                item[`scale${i}`] = i === ((index % this.numScales) + 1);
-                            }
-                        }
-                    });
+                    // Real optimization algorithm
+                    const result = await this.realOptimizeAssignments(mode);
                     
-                    // Simulate progress
-                    for (let i = 0; i <= 100; i += 10) {
-                        this.updateProgress(i);
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                    if (result.success) {
+                        // Apply the optimized assignment
+                        this.applyOptimizedAssignment(result.assignment, result.unlockedItems);
+                        this.updateUI();
+                        this.showOptimizationResults(mode);
+                        this.showMessage(`Optimization complete! Evaluated ${result.evaluations.toLocaleString()} combinations in ${result.timeMs}ms`, "result");
+                    } else {
+                        this.showMessage("Optimization failed: " + result.error, "error");
                     }
-                    
-                    this.updateUI();
-                    this.showOptimizationResults(mode);
                     
                 } catch (error) {
                     console.error("Optimization error:", error);
@@ -1372,6 +1367,248 @@
                     this.isOptimizing = false;
                     this.showOptimizationProgress(false);
                 }
+            }
+
+            async realOptimizeAssignments(mode) {
+                const unlockedItems = this.items.map((item, index) => 
+                    this.lockedItems.has(index) ? null : index
+                ).filter(idx => idx !== null);
+                
+                if (unlockedItems.length === 0) {
+                    return { success: false, error: "All items are locked - nothing to optimize" };
+                }
+
+                // For larger datasets, use genetic algorithm; for smaller ones, use brute force
+                if (unlockedItems.length <= 12) {
+                    return await this.bruteForceOptimize(unlockedItems, mode);
+                } else {
+                    return await this.geneticAlgorithmOptimize(unlockedItems, mode);
+                }
+            }
+
+            async bruteForceOptimize(unlockedItems, mode) {
+                let bestAssignment = null;
+                let bestScore = -Infinity;
+                let evaluations = 0;
+                const startTime = Date.now();
+
+                // Generate all possible assignments for unlocked items
+                const numUnlocked = unlockedItems.length;
+                const totalCombinations = Math.pow(this.numScales, numUnlocked);
+                
+                if (totalCombinations > 100000) {
+                    return { success: false, error: "Too many combinations for brute force. Using genetic algorithm instead." };
+                }
+
+                const generateAssignments = async (index, currentAssignment) => {
+                    if (index === numUnlocked) {
+                        evaluations++;
+                        const score = this.evaluateAssignment(currentAssignment, unlockedItems, mode);
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestAssignment = [...currentAssignment];
+                        }
+                        
+                        // Update progress periodically
+                        if (evaluations % 1000 === 0) {
+                            const progress = (evaluations / totalCombinations) * 100;
+                            this.updateProgress(progress);
+                            await new Promise(resolve => setTimeout(resolve, 1));
+                        }
+                        return;
+                    }
+
+                    for (let scale = 0; scale < this.numScales; scale++) {
+                        currentAssignment[index] = scale;
+                        await generateAssignments(index + 1, currentAssignment);
+                    }
+                };
+
+                await generateAssignments(0, new Array(numUnlocked));
+                
+                const endTime = Date.now();
+                return {
+                    success: true,
+                    assignment: bestAssignment,
+                    unlockedItems: unlockedItems,
+                    score: bestScore,
+                    evaluations: evaluations,
+                    timeMs: endTime - startTime
+                };
+            }
+
+            async geneticAlgorithmOptimize(unlockedItems, mode) {
+                const populationSize = 100;
+                const generations = 50;
+                const mutationRate = 0.1;
+                const eliteSize = 10;
+                
+                let population = [];
+                let evaluations = 0;
+                const startTime = Date.now();
+
+                // Initialize random population
+                for (let i = 0; i < populationSize; i++) {
+                    const individual = unlockedItems.map(() => Math.floor(Math.random() * this.numScales));
+                    population.push(individual);
+                }
+
+                let bestScore = -Infinity;
+                let bestAssignment = null;
+
+                for (let generation = 0; generation < generations; generation++) {
+                    // Evaluate population
+                    const scores = population.map(individual => {
+                        evaluations++;
+                        return this.evaluateAssignment(individual, unlockedItems, mode);
+                    });
+
+                    // Find best in this generation
+                    const maxScore = Math.max(...scores);
+                    if (maxScore > bestScore) {
+                        bestScore = maxScore;
+                        const bestIndex = scores.indexOf(maxScore);
+                        bestAssignment = [...population[bestIndex]];
+                    }
+
+                    // Selection and reproduction
+                    const newPopulation = [];
+                    
+                    // Elite selection
+                    const sortedIndices = scores.map((score, index) => ({ score, index }))
+                        .sort((a, b) => b.score - a.score);
+                    
+                    for (let i = 0; i < eliteSize; i++) {
+                        newPopulation.push([...population[sortedIndices[i].index]]);
+                    }
+
+                    // Generate offspring
+                    while (newPopulation.length < populationSize) {
+                        const parent1 = this.tournamentSelection(population, scores);
+                        const parent2 = this.tournamentSelection(population, scores);
+                        const offspring = this.crossover(parent1, parent2);
+                        
+                        if (Math.random() < mutationRate) {
+                            this.mutate(offspring);
+                        }
+                        
+                        newPopulation.push(offspring);
+                    }
+
+                    population = newPopulation;
+                    
+                    // Update progress
+                    const progress = (generation / generations) * 100;
+                    this.updateProgress(progress);
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                const endTime = Date.now();
+                return {
+                    success: true,
+                    assignment: bestAssignment,
+                    unlockedItems: unlockedItems,
+                    score: bestScore,
+                    evaluations: evaluations,
+                    timeMs: endTime - startTime
+                };
+            }
+
+            tournamentSelection(population, scores, tournamentSize = 3) {
+                let bestIndex = Math.floor(Math.random() * population.length);
+                let bestScore = scores[bestIndex];
+
+                for (let i = 1; i < tournamentSize; i++) {
+                    const index = Math.floor(Math.random() * population.length);
+                    if (scores[index] > bestScore) {
+                        bestIndex = index;
+                        bestScore = scores[index];
+                    }
+                }
+
+                return [...population[bestIndex]];
+            }
+
+            crossover(parent1, parent2) {
+                const offspring = [];
+                for (let i = 0; i < parent1.length; i++) {
+                    offspring.push(Math.random() < 0.5 ? parent1[i] : parent2[i]);
+                }
+                return offspring;
+            }
+
+            mutate(individual) {
+                const index = Math.floor(Math.random() * individual.length);
+                individual[index] = Math.floor(Math.random() * this.numScales);
+            }
+
+            evaluateAssignment(assignment, unlockedItems, mode) {
+                // Create a temporary assignment including locked items
+                const fullAssignment = this.items.map((item, index) => {
+                    if (this.lockedItems.has(index)) {
+                        // Find which scale this locked item is currently assigned to
+                        for (let i = 1; i <= this.numScales; i++) {
+                            if (item[`scale${i}`]) {
+                                return i - 1; // Convert to 0-based indexing
+                            }
+                        }
+                        return 0; // Fallback
+                    } else {
+                        // Find this item's index in the unlockedItems array
+                        const unlockedIndex = unlockedItems.indexOf(index);
+                        return assignment[unlockedIndex];
+                    }
+                });
+
+                let tolerances = [];
+                
+                for (let scale = 0; scale < this.numScales; scale++) {
+                    const scaleWeights = [];
+                    fullAssignment.forEach((scaleAssign, itemIndex) => {
+                        if (scaleAssign === scale) {
+                            scaleWeights.push(this.items[itemIndex].weight);
+                        }
+                    });
+                    
+                    const result = this.calculateScaleTolerance(scaleWeights);
+                    const minRequired = this.minTolerances[scale] || 0.0;
+                    
+                    // Penalize if minimum requirement not met
+                    if (result.tolerance < minRequired) {
+                        tolerances.push(0);
+                    } else {
+                        tolerances.push(result.tolerance);
+                    }
+                }
+                
+                // Calculate objective based on mode
+                switch(mode) {
+                    case 'balanced':
+                        return tolerances.reduce((a, b) => a + b, 0);
+                    case 'product':
+                        return tolerances.reduce((a, b) => a * b, 1);
+                    case 'min':
+                        return Math.min(...tolerances);
+                    default:
+                        return tolerances.reduce((a, b) => a + b, 0);
+                }
+            }
+
+            applyOptimizedAssignment(assignment, unlockedItems) {
+                // Clear all assignments for unlocked items
+                unlockedItems.forEach(itemIndex => {
+                    for (let i = 1; i <= this.numScales; i++) {
+                        this.items[itemIndex][`scale${i}`] = false;
+                    }
+                });
+
+                // Apply new assignments
+                assignment.forEach((scaleIndex, unlockedArrayIndex) => {
+                    const itemIndex = unlockedItems[unlockedArrayIndex];
+                    const scaleNumber = scaleIndex + 1; // Convert back to 1-based indexing
+                    this.items[itemIndex][`scale${scaleNumber}`] = true;
+                });
             }
 
             showOptimizationProgress(show) {
